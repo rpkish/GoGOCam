@@ -1,0 +1,221 @@
+#!/usr/bin/python
+
+import threading
+import logging,time,getopt,sys,os,StringIO,base64,urllib2,socket,signal
+from urllib2 import *
+
+class variables():
+  def __init__(self):
+    self.goprostatus = 0
+    self.daemonStatus = 0
+    self.url = "http://www.slacktastic.net/car_pics/gopro"
+    self.incrementer = 0
+    self.pwrStatus = ""
+    self.recStatus = ""
+    self.bat1Status = ""
+    self.bat2Status = ""
+    self.chrStatus = ""
+    self.minremStatus = ""
+    self.statusURL = "http://10.5.5.9/CMD?t=legacygt"
+    self.commandURL = "http://10.5.5.9/CMD?t=legacygt&p=%VAL"
+    self.CmdWait = 0
+    self.GPIPADDR = "10.5.5.9"
+    self.ledColor = "1"
+    self.addRed = 0
+    self.addBigRed = 0
+    self.lanStatus = "0"
+    
+class getStat(threading.Thread):
+  def __init__(self, info):
+    threading.Thread.__init__(self)
+    self.daemon = True
+    self.info = info
+    self.should_run = True
+  def die(self):
+    print "exception caught shutting down poller"
+    self.should_run = False
+  def run(self):
+    def _hexToDec(val):
+      return int(val, 16)
+    while self.should_run:
+      try:
+        while self.info.CmdWait == 1:
+          print "sleeping while command is being sent"
+          time.sleep(0.2)
+	self.info.CmdWait=1
+        ping = os.system("ping -c 1 " + self.info.GPIPADDR + "> /dev/null")
+        if ping == 0:
+          self.info.lanStatus = "0"
+	  response = urlopen("http://10.5.5.9/camera/sx?t=legacygt", timeout=2).read().encode("hex")
+          self.info.pwrStatus = response[18:20]
+          self.info.recStatus = response[60:62]
+          bat1Int = int(response[38:40], 16)
+          self.info.bat1Status = bat1Int
+          minInt = int(response[50:54], 16)
+          self.info.minremStatus = minInt
+          self.info.addRed == 0
+          print self.info.ledColor 
+          if self.info.pwrStatus == "00":
+            if self.info.recStatus == "05":
+              if self.info.bat1Status <= 1:
+                self.info.addRed = 1
+              if self.info.minremStatus <= 30:
+                self.info.addRed = 1
+              if self.info.addRed == 1:
+                self.info.ledColor = "4"
+              else:
+                self.info.ledColor = "3"
+            else:
+              if self.info.addRed == 1:
+                self.info.ledColor = "5"
+              else:
+                self.info.ledColor = "2"
+          else:
+            self.info.ledColor = "1"
+        else:                                                                                       
+          print "Can not ping go pro"                                                                                      
+          self.info.ledColor = "1"
+          self.info.lanStatus = "1"
+	self.info.CmdWait=0
+	
+      except urllib2.HTTPError, err:
+        print "Power is off"
+        self.info.ledColor = "1"
+        self.info.CmdWait=0
+
+      except urllib2.URLError, err:
+        print "url error"
+        self.info.CmdWait=0
+      except socket.timeout, err:
+        self.info.CmdWait=0
+              
+
+class tcpListen(threading.Thread):
+  def __init__(self, info):
+    threading.Thread.__init__(self)
+    self.daemon = True
+    self.info = info
+    self.should_run = True
+  def die(self):
+    self.should_run = False
+    print "exception caught shutting down listener"
+  def run(self):
+    def sendCommand(cmd,state):
+      try:
+        self.info.CmdWait=1
+        self.cmdurl = self.info.commandURL.replace("CMD", cmd).replace("VAL", state)
+        urlopen(self.cmdurl, timeout=5)
+        #time.sleep (1)
+        self.info.CmdWait=0
+      except urllib2.HTTPError, err:
+        print "http error"
+      except urllib2.URLError, err:
+        print "url error"
+
+    while self.should_run:
+      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+      server_address = ('0.0.0.0', 10000)
+      print >>sys.stderr, 'starting up on %s port %s' % server_address
+      sock.bind(server_address)
+
+      sock.listen(1)
+      while True:
+        print >>sys.stderr, 'waiting for a connection'
+        connection, client_address = sock.accept()
+        connection.sendall("GoGOCam Server" + "\n")
+        try:
+          print >>sys.stderr, 'connection from', client_address
+          while True:
+            data = connection.recv(16).rstrip()
+            if not data:
+              print >>sys.stderr, 'no data sent'
+              break
+            elif data == "hi":
+              print >>sys.stderr, 'saying hello'
+              connection.sendall("hello there" +  "\n")
+            elif data == "led.Status":
+              #print >>sys.stderr, 'sending led color'
+              connection.sendall(self.info.ledColor + self.info.lanStatus )
+            elif data == "l":
+              print >>sys.stderr, 'sending led color'
+              connection.sendall(self.info.ledColor + self.info.lanStatus + "\n")
+            elif data == "power.Status":
+              print >>sys.stderr, 'sending power status to the client'
+              connection.sendall("power status: " + self.info.pwrStatus + "\n")
+            elif data == "record.Status":
+              print >>sys.stderr, 'sending record status to the client'
+              connection.sendall("record status: " + self.info.recStatus + "\n")
+            elif data == "minute.Status":
+              print >>sys.stderr, 'sending minutes remaining status to the client'
+              connection.sendall("minutes remaining: " + self.info.recStatus + "\n")
+            elif data == "battery1.Status":
+              print >>sys.stderr, 'sending battery1 status to the client'
+              connection.sendall("battery 1: " + self.info.bat1Status + "\n")
+            elif data == "charge.Status":
+              print >>sys.stderr, 'sending charge status to the client'
+              connection.sendall("charge status " + self.info.chrStatus + "\n")
+            elif data == "power.On":
+              print >>sys.stderr, 'sending power on to camera'
+              sendCommand("bacpac/PW","01")
+              connection.sendall(self.cmdurl + "\n")
+              connection.sendall("power on sent" + "\n")
+            elif data == "power.Off":
+              print >>sys.stderr, 'sending power off to camera'
+              sendCommand("bacpac/PW","00")
+              connection.sendall(self.cmdurl + "\n")
+              connection.sendall("power off sent" + "\n")
+            elif data == "record.Start":
+              print >>sys.stderr, 'sending record start to camera'
+              sendCommand("camera/SH","01")
+              connection.sendall(self.cmdurl + "\n")
+              connection.sendall("recording start sent" + "\n")
+            elif data == "record.Stop":
+              print >>sys.stderr, 'sending record stop to camera'
+              sendCommand("camera/SH","00")
+              connection.sendall(self.cmdurl + "\n")
+              connection.sendall("recording stop sent" + "\n")
+            elif data == "help":
+              print >>sys.stderr, 'sending help message to the client'
+              connection.sendall("commands" + "\n")
+              connection.sendall("power.Status - Cameras off/on state" + "\n")
+              connection.sendall("record.Status - Is camera recording" + "\n")
+              connection.sendall("minute.Status - Minutes remaining" + "\n")
+              connection.sendall("battery1.Status - Battery1 something" + "\n")
+              connection.sendall("battery2.Status - Battery2 something" + "\n")
+              connection.sendall("charge.Status - Charings status of battery" + "\n")
+              connection.sendall("power.On - Power on camera" + "\n")
+              connection.sendall("power.Off - Power off camera" + "\n")
+              connection.sendall("record.Start - Start recording" + "\n")
+              connection.sendall("record.Stop - Stop recording" + "\n")
+            elif data == "":
+              connection.sendall("ok" + "\n")
+              print >>sys.stderr, 'caught carridge return'
+            elif data == "quit":
+              print >>sys.stderr, 'closing connection'
+              connection.sendall("goodbye" +  "\n")
+              break
+            else:
+              print >>sys.stderr, 'command not implmented', client_address
+              print >>sys.stderr, data, client_address
+#              connection.sendall("invalid syntax" + "\n")
+        finally:
+              connection.close()
+#              connection.sendall("invalid syntax" + "\n")
+
+if __name__== '__main__':
+  info=variables()
+  poller=getStat(info)
+  listener=tcpListen(info)
+  poller.start()
+  listener.start()
+
+  while threading.active_count() > 0:
+    try:
+      time.sleep(0.1)
+    except KeyboardInterrupt:
+      print "caught exception"
+      poller.die()
+      listener.die()
+      sys.exit()
