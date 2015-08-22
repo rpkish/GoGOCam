@@ -21,10 +21,10 @@ Arduino Yún
 GoPro Hero3+ (silver/black tested)
 
 ##Optional
-*3 220 ohm resistors
-*1 10K ohm resistor
-*1 RGB LED (common cathode) ? Sparkfun COM-09264
-*1 Arduino ProtoShield Kit ? DEV-07914 Sparkfun
+* 3 220 ohm resistors
+* 1 10K ohm resistor
+* 1 RGB LED (common cathode) Sparkfun COM-09264
+* 1 Arduino ProtoShield Kit  Sparkfun DEV-07914
 
 ##Sheild
 I have constructed a shield that plugs into the yun and provides me a spot to attach appropirate connecters and a status LED. A schematic for this board is provided in this reposoitory.
