@@ -56,7 +56,7 @@ class getStat(threading.Thread):
           self.info.addRed == 0
           print self.info.ledColor 
           if self.info.pwrStatus == "00":
-            if self.info.recStatus == "05":
+            if self.info.recStatus == "TRIM":
               if self.info.bat1Status <= 1:
                 self.info.addRed = 1
               if self.info.minremStatus <= 30:

@@ -20,6 +20,13 @@ echo " purposes"
 echo ""
 echo "#i*************************************************#"
 
+echo "What model GoPro do you have?"
+echo "45 - GoPro Hero3+ Black"
+echo "05 - GoPro Hero3+ Silver"
+echo
+echo "Enter the number that matches your device below"
+echo -n "? " 
+read model
 
 echo -n "Please enter the Wireless Network (SSID) you configured for your GoPro: "
 read ssid
@@ -111,6 +118,7 @@ echo "Installing application"
 echo "configuring application"
 # set the PSK in the deamon
 sed -i s/PreSharedKey/$psk/g /usr/bin/GoGOCamd
+sed -i s/TRIM/$model/g /usr/bin/GoGOCamd
 
 echo "configuring arduino"
 # upload the arduino code
