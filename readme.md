@@ -1,62 +1,50 @@
-GoPro Record Controller for Race Capture Pro
+_________     ________________________                 ______
+__  ____/_______  ____/_  __ \_  ____/_____ _______ ____  / /
+_  / __ _  __ \  / __ _  / / /  /    _  __ `/_  __ `__ \_/ / 
+/ /_/ / / /_/ / /_/ / / /_/ // /___  / /_/ /_  / / / / //_/  
+\____/  \____/\____/  \____/ \____/  \__/_/ /_/ /_/ /_/(_)   
+                                                            
 
-***
-*Overview
-***
+Arduino Yun based remote for wi-fi equipped GoPro Hero3
 
-***
-*This post describes the controller I will be using to handle recording video data for use with my telemetry data for the race capture pro
-***
+#*Theory of operation
 
-***
-*Theory of operation
-***
+The GoPro Hero3+ has integrated wifi. As shipped, the wifi creates an adhoc network, always on IP 10.5.5.9 and assigning the client a dhcp address. The Yún has both an ATmega32u4 processor as well as a Atheros AR9331 processor. The ATmega32u4 provides real time functionality delieveried via the androide IDE, and connected to the AR9331 via serial. The AR9331 provides OpenWRT (Embedded Linux), granting easy access to wifi and a python interpreter. 
 
-The GoPro Hero3+ has integrated wifi. As shipped, the wifi creates an adhoc network, always on IP 10.5.5.9 and assigning the client a dhcp address.  It?s possible there is another mode that facilitates connecting multiple cameras, but I have not yet discovered documentation or how to do it.
-
-The Yún has both an arduino processor as well as a linux processor. The linux side controls the wifi. The configuration for the network is stored here, as well as the go-gopro.py script. The arduino side handles information from and to the go-gopro.py process.
-
-With my configuration I created a ?sheild? to provide the rest of the components needed to make this work. The controller shield provides resistors, screw terminals for an RGB LED, ground sync from the Race Capture Pro, and one ground (just in case).
-
-***
-*Requirements
-***
-
-Race Capture Pro
+GoGOCam has a program for each processor onboard the yun. GoGOCamd (python) runs on the AR9331. Its job is to querry and send commands to the GoPro. It provides a listener to acces those commands over serial from the ATmega32u4. 
+ 
+**Requirements
 Arduino Yún
-GoPro Hero3+
-Components needed to complete circuit / controller board
-Controller board
+GoPro Hero3+ (silver/black tested)
 
-***
-*Ingredients
-***
-
+**Optional
 3 220 ohm resistors
 1 10K ohm resistor
 1 RGB LED (common cathode) ? Sparkfun COM-09264
-1 2 Pin 5mm screw terminal ? Sparkfun PRT-08432
-1 3 Pin 5mm screw terminal ? Sparkfun PRT-08433
+1 Arduino ProtoShield Kit ? DEV-07914 Sparkfun
 
-Optional
+**Sheild
+I have constructed a shield that plugs into the yun and provides me a spot to attach appropirate connecters and a status LED. A schematic for this board is provided in this reposoitory.
 
-Arduino Yun Enclosure ? Clear Plastic ? Sparkfun PRT-12840
-Arduino ProtoShield Kit ? DEV-07914 Sparkfun
-Circuit Diagram
+** PIN Assignment
 
-***
-*Race Capture Pro Lua Script
-***
+D3 - Blue LED anode
+D5 - Green LED anode
+D6 - Red LED anode
+D12 - Signal (when connected to ground, recording command 'start' sent. when disconnected, recording command 'stop' sent)
 
-function onTick() 
-  local swt = getGpio(0)
-  if swt > 0.000 then
-   stopLogging()
-   setGpio(1,0)
-   setGpio(2,0)
-  else
-   startLogging()
-   setGpio(1,1)
-   setGpio(2,1)
-  end
-end
+** Installation
+
+1) Follow the instructions on getting your Yun to the latest version of OpenWRT. https://www.arduino.cc/en/Tutorial/YunSysupgrade
+2) Transfer the install.tar file from this repository to your Yun.
+3) On your yun, run these commands:
+
+  tar -xvf installer.tar
+  cd ./installer
+  ./install.sh
+
+You will then be prompted for your GoPro's wifi SSID and password. Additionally, you will be prompted to set up a static IP for your wired ethernet. If you dont have need for a wired network, enter use a default RFC1918 address ex:
+
+IP 192.168.0.1
+Netmask 255.255.255.0
+Gateway 192.168.0.254

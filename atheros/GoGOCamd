@@ -8,7 +8,7 @@ class variables():
   def __init__(self):
     self.goprostatus = 0
     self.daemonStatus = 0
-    self.url = "http://www.slacktastic.net/car_pics/gopro"
+    self.url = "http://10.5.5.9"
     self.incrementer = 0
     self.pwrStatus = ""
     self.recStatus = ""
@@ -16,8 +16,8 @@ class variables():
     self.bat2Status = ""
     self.chrStatus = ""
     self.minremStatus = ""
-    self.statusURL = "http://10.5.5.9/CMD?t=legacygt"
-    self.commandURL = "http://10.5.5.9/CMD?t=legacygt&p=%VAL"
+    self.statusURL = "http://10.5.5.9/CMD?t=PreSharedKey"
+    self.commandURL = "http://10.5.5.9/CMD?t=PreSharedKey&p=%VAL"
     self.CmdWait = 0
     self.GPIPADDR = "10.5.5.9"
     self.ledColor = "1"
@@ -46,7 +46,7 @@ class getStat(threading.Thread):
         ping = os.system("ping -c 1 " + self.info.GPIPADDR + "> /dev/null")
         if ping == 0:
           self.info.lanStatus = "0"
-	  response = urlopen("http://10.5.5.9/camera/sx?t=legacygt", timeout=2).read().encode("hex")
+	  response = urlopen("http://10.5.5.9/camera/sx?t=PreSharedKey", timeout=2).read().encode("hex")
           self.info.pwrStatus = response[18:20]
           self.info.recStatus = response[60:62]
           bat1Int = int(response[38:40], 16)
