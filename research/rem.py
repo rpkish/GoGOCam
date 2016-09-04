@@ -43,6 +43,7 @@ if sys.argv[1] == "start":
   message = msg.zfill(30).decode('hex')
   sock.sendto(message, ('192.168.240.170', UDP_PORT)) 
   sock.sendto(message, ('192.168.240.225', UDP_PORT)) 
+  print("message: ",  message)              
   
   ## Send at least one st. actually sending a few may be a good way to help with sync. TBD
   
@@ -59,7 +60,7 @@ if sys.argv[1] == "start":
   message = msg.zfill(28).decode('hex')
         
   sock.sendto(message, (UDP_IP, UDP_PORT))
-  print("message:", message)              
+  print("message: ",  message)              
   
 if sys.argv[1] == "stop":
 
