@@ -3,31 +3,32 @@
 local hnpw = {
   "00", "00", "00", "00", "00", "00", "00", "00", "00", "00" , "4e", "70", "77", "00", "01"
 }
-local npw = "";
-for i, v in ipairs(hnpw) do
-  npw = npw .. string.char(tonumber(v, 16))
-end
+
 local hst = {
   "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "73", "74"
 }
-local st = "";
-for i, v in ipairs(hst) do
-  st = st .. string.char(tonumber(v, 16))
-end
+
 local hshstr = {
   "00", "00", "00", "00", "00", "00", "00", "00", "00", "00" , "00", "53", "48", "01"
 }
-local shstr = "";
-for i, v in ipairs(hshstr) do
-  shstr = shstr .. string.char(tonumber(v, 16))
-end
+
+
 local hshstp = {
   "00", "00", "00", "00", "00", "00", "00", "00", "00", "00" , "00", "53", "48", "00"
 }
-local shstp = "";
-for i, v in ipairs(hshstp) do
-  shstp = shstp .. string.char(tonumber(v, 16))
+
+function hexbin(packet)
+  local val = "";
+  for i, v in ipairs(packet) do
+    val = val .. string.char(tonumber(v, 16))
+  end
+  return val
 end
+
+local npw = hexbin(hnpw)
+local st = hexbin(hst)
+local shstr = hexbin(hshstr)
+local shstp = hexbin(hshstp)
 
 function sleep(n)
   os.execute("sleep " .. tonumber(n))
@@ -66,7 +67,6 @@ end
 
 if arg[1] == "stop" then
   s:sendto(shstp, broadcast, port)
---s:sendto(shstp, "192.168.240.255", 10000) -- start session
 end
 
 s:close()
